@@ -78,10 +78,7 @@ void AGameGrid::OnConstruction(const FTransform& Transform)
 			
 			Grid->SetChildActorClass(GridClass);
 			AGameSlot* GameSlot = Cast<AGameSlot>(Grid->GetChildActor());
-
-			GameSlot->SetActorLabel(GridName.ToString());
-			GameSlot->GridPosition.Col = j;
-			GameSlot->GridPosition.Row = i;			
+			GameSlot->SetActorLabel(GridName.ToString());		
 		}
 	}
 }
@@ -90,6 +87,18 @@ void AGameGrid::OnConstruction(const FTransform& Transform)
 void AGameGrid::BeginPlay()
 {
 	Super::BeginPlay();
+
+	int GridIndex = 0;
+
+	for (int i = 0; i < NumRows; i++)
+	{
+		for (int j = 0; j < NumCols; j++)
+		{
+			AGameSlot* GameSlot = Cast<AGameSlot>(GridActors[GridIndex]->GetChildActor());
+			GameSlot->GridPosition = FSGridPosition(j, i);
+			GridIndex++;
+		}
+	}
 	
 }
 
