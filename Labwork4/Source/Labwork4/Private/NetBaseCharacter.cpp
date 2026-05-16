@@ -6,7 +6,7 @@
 
 static UDataTable* SBodyParts = nullptr;
 
-static const TCHAR* BodyPartNames[] =
+static const TArray<FString> BodyPartNames
 {
 	TEXT("Face"),
 	TEXT("Hair"),
@@ -188,7 +188,7 @@ void ANetBaseCharacter::UpdateBodyParts()
 
 FSMeshAssetList* ANetBaseCharacter::GetBodyPartList(EBodyPart part,bool isFemale)
 {
-	FString Name = FString::Printf(TEXT("%s%s"), isFemale ? TEXT("Female") : TEXT("Male"), BodyPartNames[(int)part]);
+	FString Name = FString::Printf(TEXT("%s%s"), isFemale ? TEXT("Female") : TEXT("Male"), *BodyPartNames[(int)part]);
 	return SBodyParts ? SBodyParts->FindRow<FSMeshAssetList>(*Name, nullptr) : nullptr;
 }
 
