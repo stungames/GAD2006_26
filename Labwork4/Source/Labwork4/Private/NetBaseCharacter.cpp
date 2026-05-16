@@ -56,11 +56,22 @@ void ANetBaseCharacter::BeginPlay()
 	Super::BeginPlay();	
 	if (GetNetMode() == ENetMode::NM_Standalone) return;		
 	SetActorHiddenInGame(true);
+
+	// Only submit player info to server for locally controlled characters
+	if (IsLocallyControlled())
+	{
+		UNetGameInstance* Instance = Cast<UNetGameInstance>(GWorld->GetGameInstance());
+		if (Instance) {
+			SubmitPlayerInfoToServer(Instance->PlayerInfo);
+		}
+	}
+
 	CheckPlayerState();		
 }
 
 void ANetBaseCharacter::SubmitPlayerInfoToServer_Implementation(FSPlayerInfo Info)
 {
+	// Server-side: Update PlayerState with received info
 	ANetPlayerState *State = GetPlayerState<ANetPlayerState>();
 	State->Data.Nickname = Info.Nickname;
 	State->Data.CustomizationData = Info.CustomizationData;
@@ -118,21 +129,15 @@ void ANetBaseCharacter::CheckPlayerState()
 {
 	ANetPlayerState* State = GetPlayerState<ANetPlayerState>();
 
-	if (State == nullptr) {
+	if (State == nullptr) 
+	{
 		UE_LOG(LogTemp, Warning, TEXT("State == nullptr"));
-
+		// If PlayerState isn't available yet, check again after a short delay
 		GWorld->GetTimerManager().SetTimer(ClientDataCheckTimer, this,
 			&ANetBaseCharacter::CheckPlayerState, 0.25f, false);
-	} else {
-
-		if (IsLocallyControlled())
-		{
-			UNetGameInstance* Instance = Cast<UNetGameInstance>(GWorld->GetGameInstance());
-			if (Instance) {
-				SubmitPlayerInfoToServer(Instance->PlayerInfo);
-			}
-		}
-
+	} 
+	else 
+	{
 		CheckPlayerInfo();
 	}
 }
@@ -140,15 +145,23 @@ void ANetBaseCharacter::CheckPlayerState()
 void ANetBaseCharacter::CheckPlayerInfo()
 {
 	ANetPlayerState* State = GetPlayerState<ANetPlayerState>();
+	
+	if (State && PlayerInfoReceived) 
+	{
+		UE_LOG(LogTemp, Warning, TEXT("State Received!"));
 
-	if (State && PlayerInfoReceived) {
+		// Update character based on player info
 		ParseCustomizationData(State->Data.CustomizationData);
 		UpdateBodyParts();
 		OnPlayerInfoChanged.Broadcast();
+		// Show character now that info has been received and applied
 		SetActorHiddenInGame(false);
-	} else {
+	}
+	else 
+	{
 		UE_LOG(LogTemp, Warning, TEXT("State Not Received!"));
 
+		// If player info hasn't been received yet, check again after a short delay
 		GWorld->GetTimerManager().SetTimer(ClientDataCheckTimer, this,
 			&ANetBaseCharacter::CheckPlayerInfo, 0.25f, false);
 	}
@@ -156,6 +169,7 @@ void ANetBaseCharacter::CheckPlayerInfo()
 
 FString ANetBaseCharacter::GetCustomizationData()
 {
+	// Serialize body part indices into a comma-separated string
 	FString Data;
 	for (size_t i = 0; i < (int)EBodyPart::BP_COUNT; i++)
 	{
@@ -168,6 +182,7 @@ FString ANetBaseCharacter::GetCustomizationData()
 
 void ANetBaseCharacter::ParseCustomizationData(FString BodyPartData)
 {
+	// Deserialize body part indices from a comma-separated string
 	TArray<FString> ArrayData;	
 	BodyPartData.ParseIntoArray(ArrayData, TEXT(","));
 	for (size_t i = 0; i < ArrayData.Num(); i++)
@@ -178,6 +193,7 @@ void ANetBaseCharacter::ParseCustomizationData(FString BodyPartData)
 
 void ANetBaseCharacter::UpdateBodyParts()
 {
+	// Update all body parts based on current indices
 	ChangeBodyPart(EBodyPart::BP_Face, 0, false);
 	ChangeBodyPart(EBodyPart::BP_Beard, 0, false);
 	ChangeBodyPart(EBodyPart::BP_Chest, 0, false);
@@ -188,7 +204,7 @@ void ANetBaseCharacter::UpdateBodyParts()
 
 FSMeshAssetList* ANetBaseCharacter::GetBodyPartList(EBodyPart part,bool isFemale)
 {
-	FString Name = FString::Printf(TEXT("%s%s"), isFemale ? TEXT("Female") : TEXT("Male"), *BodyPartNames[(int)part]);
+	FString Name = FString::Printf(TEXT("%s%s"), isFemale ? TEXT("Female") : TEXT("Male"), *BodyPartNames[(int)part]);	
 	return SBodyParts ? SBodyParts->FindRow<FSMeshAssetList>(*Name, nullptr) : nullptr;
 }
 

@@ -16,6 +16,8 @@ void ANetPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 void ANetPlayerState::OnRep_PlayerInfo()
 {
 	ANetBaseCharacter* Char = Cast<ANetBaseCharacter>(GetPawn());
+	// If character is available, update it with new info. 
+	// Otherwise, wait and try again after a short delay
 	if (Char) {
 		Char->PlayerInfoReceived = true;
 	} else {
